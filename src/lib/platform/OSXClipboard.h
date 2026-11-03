@@ -39,6 +39,13 @@ public:
 private:
   void clearConverters();
 
+  //! True if the pasteboard holds files copied in Finder
+  bool hasFiles() const;
+  //! Pack the files copied in Finder
+  std::string getFiles() const;
+  //! Extract received files and put them on the pasteboard as file URLs
+  void addFiles(const std::string &data);
+
 private:
   using ConverterList = std::vector<IOSXClipboardConverter *>;
 

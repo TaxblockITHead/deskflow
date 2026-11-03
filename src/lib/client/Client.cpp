@@ -17,6 +17,7 @@
 #include "common/NetworkProtocol.h"
 #include "common/Settings.h"
 #include "deskflow/Clipboard.h"
+#include "deskflow/ClipboardFiles.h"
 #include "deskflow/Computer.h"
 #include "deskflow/DeskflowException.h"
 #include "deskflow/IPlatformComputer.h"
@@ -357,6 +358,9 @@ void Client::setOptions(const OptionsList &options)
     m_enableClipboard = false;
     LOG_INFO("clipboard sharing is disabled because the server set the maximum clipboard size to 0");
   }
+
+  // don't read copied files from disk if they are too big to be sent
+  ClipboardFiles::setMaxPayloadBytes(m_enableClipboard ? static_cast<uint64_t>(m_maximumClipboardSize) * 1024 : 0);
 
   m_computer->setOptions(options);
 }

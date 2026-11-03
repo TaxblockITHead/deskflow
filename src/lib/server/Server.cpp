@@ -11,6 +11,7 @@
 #include "base/IEventQueue.h"
 #include "base/Log.h"
 #include "deskflow/AppUtil.h"
+#include "deskflow/ClipboardFiles.h"
 #include "deskflow/Computer.h"
 #include "deskflow/DeskflowException.h"
 #include "deskflow/IPlatformComputer.h"
@@ -1129,6 +1130,9 @@ void Server::processOptions()
   }
   m_relativeMoves = newRelativeMoves;
   m_protocol = Settings::networkProtocol();
+
+  // don't read copied files from disk if they are too big to be sent
+  ClipboardFiles::setMaxPayloadBytes(m_enableClipboard ? static_cast<uint64_t>(m_maximumClipboardSize) * 1024 : 0);
 }
 
 void Server::handleShapeChanged(BaseClientProxy *client)

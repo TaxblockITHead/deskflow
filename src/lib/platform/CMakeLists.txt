@@ -42,6 +42,8 @@ if(WIN32)
     MSWindowsClipboardBitmapConverter.h
     MSWindowsClipboardFacade.cpp
     MSWindowsClipboardFacade.h
+    MSWindowsClipboardFileConverter.cpp
+    MSWindowsClipboardFileConverter.h
     MSWindowsClipboardHTMLConverter.cpp
     MSWindowsClipboardHTMLConverter.h
     MSWindowsClipboardUTF16Converter.cpp
@@ -190,6 +192,11 @@ endif()
 add_library(platform STATIC ${PLATFORM_SOURCES})
 
 target_link_libraries(platform PUBLIC client ${libs})
+
+if(WIN32)
+  # the clipboard file converter uses ClipboardFiles
+  target_link_libraries(platform PRIVATE app)
+endif()
 
 if(UNIX)
   target_link_libraries(platform PRIVATE net app)
