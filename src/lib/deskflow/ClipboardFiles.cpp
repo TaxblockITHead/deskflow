@@ -506,6 +506,11 @@ std::vector<std::string> ClipboardFiles::unpack(const std::string &payload, cons
 
 std::vector<std::string> ClipboardFiles::receive(const std::string &payload)
 {
+  return receive(payload, receiveDirectory());
+}
+
+std::vector<std::string> ClipboardFiles::receive(const std::string &payload, const std::string &baseDir)
+{
   std::scoped_lock lock{s_receiveMutex};
 
   const QByteArray raw = QByteArray::fromRawData(payload.data(), static_cast<qsizetype>(payload.size()));
@@ -520,9 +525,9 @@ std::vector<std::string> ClipboardFiles::receive(const std::string &payload)
     }
   }
 
-  const QDir receiveDir(fromUtf8(receiveDirectory()));
+  const QDir receiveDir(fromUtf8(baseDir));
   if (!QDir().mkpath(receiveDir.absolutePath())) {
-    LOG_ERR("unable to create folder for received files: %s", receiveDirectory().c_str());
+    LOG_ERR("unable to create folder for received files: %s", baseDir.c_str());
     return {};
   }
   removeOldTransfers(receiveDir, kKeptTransfers - 1);

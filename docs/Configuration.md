@@ -163,7 +163,7 @@ On Windows and macOS, files and folders copied in Explorer or Finder are shared 
 
  - The total size of the copied files counts toward `clipboardSize`, which defaults to 3 MB. Raise it (Server settings → Advanced → Clipboard sharing, "Limit to") to copy larger files. Files over the limit are not sent and a warning is logged. The hard limit is 512 MB.
  - Files are sent in full when the mouse moves to the other computer, over the same connection as the mouse and keyboard, so input can lag while a large transfer is in progress.
- - Received files are kept in a `Deskflow/ReceivedFiles` folder in the system temporary folder until they are pasted. Only the last few transfers are kept.
+ - Received files are kept in a `Deskflow/ReceivedFiles` folder in your temporary folder until they are pasted (on Windows `%LOCALAPPDATA%\Temp\Deskflow\ReceivedFiles`, also when Deskflow runs as system). Only the last few transfers are kept.
  - On macOS, Deskflow may ask for permission to read files in folders such as Documents, Desktop or Downloads.
  - Both computers need a Deskflow version with this feature; older versions ignore copied files.
 

@@ -88,6 +88,13 @@ public:
   */
   static std::vector<std::string> receive(const std::string &payload);
 
+  //! Extract a Files payload into a new folder in \p baseDir
+  /*!
+  Used where receiveDirectory() is not reachable by the user who pastes,
+  e.g. when Deskflow runs as the Windows SYSTEM account.
+  */
+  static std::vector<std::string> receive(const std::string &payload, const std::string &baseDir);
+
   //! Folder holding the files received from other computers
   static std::string receiveDirectory();
 

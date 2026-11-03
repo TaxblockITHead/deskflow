@@ -14,8 +14,39 @@
 
 #include <cstring>
 #include <shlobj.h>
+#include <userenv.h>
+#include <wtsapi32.h>
 
 namespace {
+
+// With "Always run as system" Deskflow runs as the SYSTEM account, whose temp
+// folder (C:\Windows\SystemTemp) the logged in user can't open, so pasting the
+// received files would fail. Use the temp folder of the user logged in to the
+// session Deskflow runs in instead. When Deskflow runs as that user,
+// WTSQueryUserToken fails and the user's own temp folder is used.
+std::string userReceiveDirectory()
+{
+  DWORD session = 0;
+  HANDLE token = nullptr;
+  if (!ProcessIdToSessionId(GetCurrentProcessId(), &session) || !WTSQueryUserToken(session, &token)) {
+    return ClipboardFiles::receiveDirectory();
+  }
+
+  std::string result;
+  wchar_t profile[MAX_PATH] = {};
+  DWORD size = MAX_PATH;
+  if (GetUserProfileDirectoryW(token, profile, &size)) {
+    const QDir profileDir(QString::fromWCharArray(profile));
+    result = profileDir.filePath(QStringLiteral("AppData/Local/Temp/Deskflow/ReceivedFiles")).toStdString();
+  }
+  CloseHandle(token);
+
+  if (result.empty()) {
+    return ClipboardFiles::receiveDirectory();
+  }
+  LOG_DEBUG("running as another account, receiving files into: %s", result.c_str());
+  return result;
+}
 
 std::vector<std::string> readDropFiles(const DROPFILES *drop, SIZE_T size)
 {
@@ -65,7 +96,7 @@ UINT MSWindowsClipboardFileConverter::getWin32Format() const
 
 HANDLE MSWindowsClipboardFileConverter::fromIClipboard(const std::string &data) const
 {
-  const auto paths = ClipboardFiles::receive(data);
+  const auto paths = ClipboardFiles::receive(data, userReceiveDirectory());
   if (paths.empty()) {
     return nullptr;
   }
