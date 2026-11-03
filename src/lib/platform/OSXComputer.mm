@@ -20,6 +20,7 @@
 #include "common/Settings.h"
 #include "deskflow/ClientApp.h"
 #include "deskflow/Clipboard.h"
+#include "deskflow/ClipboardFiles.h"
 #include "deskflow/DisplayInvalidException.h"
 #include "deskflow/KeyMap.h"
 #include "mt/CondVar.h"
@@ -228,9 +229,15 @@ void *OSXComputer::getEventTarget() const
   return const_cast<OSXComputer *>(this);
 }
 
-bool OSXComputer::getClipboard(ClipboardID, IClipboard *dst) const
+bool OSXComputer::getClipboard(ClipboardID id, IClipboard *dst) const
 {
-  Clipboard::copy(dst, &m_pasteboard);
+  if (id == kClipboardClipboard) {
+    Clipboard::copy(dst, &m_pasteboard);
+  } else {
+    // same pasteboard as kClipboardClipboard, don't read and send files twice
+    ClipboardWithoutFiles withoutFiles(m_pasteboard);
+    Clipboard::copy(dst, &withoutFiles);
+  }
   return true;
 }
 
@@ -833,9 +840,15 @@ void OSXComputer::leave()
   m_isOnComputer = false;
 }
 
-bool OSXComputer::setClipboard(ClipboardID, const IClipboard *src)
+bool OSXComputer::setClipboard(ClipboardID id, const IClipboard *src)
 {
   if (src != nullptr) {
+    // macOS has one pasteboard for both ids and copied files are only sent
+    // with kClipboardClipboard, so the selection must not replace them
+    if (id == kClipboardSelection && !ClipboardFiles::hasFiles(src) && m_pasteboard.has(IClipboard::Format::Files)) {
+      LOG_DEBUG("keeping copied files on pasteboard, ignoring selection update");
+      return true;
+    }
     LOG_DEBUG("setting clipboard");
     Clipboard::copy(&m_pasteboard, src);
   }

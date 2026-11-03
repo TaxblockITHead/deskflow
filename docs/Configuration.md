@@ -157,6 +157,18 @@ This section contains options used when in server mode it will begin with `[serv
 
  - You can use both the ''switchDelay'' and ''switchDoubleTap'' options at the same time. Deskflow will switch when either requirement is satisfied.
 
+#### Copying files between computers
+
+On Windows and macOS, files and folders copied in Explorer or Finder are shared through the clipboard. Copy them as usual (`Ctrl+C` / `Cmd+C`), move the mouse to the other computer and paste them into an Explorer or Finder window (`Ctrl+V` / `Cmd+V`).
+
+ - The total size of the copied files counts toward `clipboardSize`, which defaults to 3 MB. Raise it (Server settings → Advanced → Clipboard sharing, "Limit to") to copy larger files. Files over the limit are not sent and a warning is logged. The hard limit is 512 MB.
+ - Files are sent in full when the mouse moves to the other computer, over the same connection as the mouse and keyboard, so input can lag while a large transfer is in progress.
+ - Received files are kept in a `Deskflow/ReceivedFiles` folder in your temporary folder until they are pasted (on Windows `%LOCALAPPDATA%\Temp\Deskflow\ReceivedFiles`, also when Deskflow runs as system). Only the last few transfers are kept.
+ - On macOS, Deskflow may ask for permission to read files in folders such as Documents, Desktop or Downloads.
+ - On Windows, files copied on that computer are not sent while "Always run as system" is on, because Windows doesn't give the files copied in Explorer to the SYSTEM account. Receiving files works either way.
+ - See [FileCopy.md](FileCopy.md) for installation, troubleshooting and details.
+ - Both computers need a Deskflow version with this feature; older versions ignore copied files.
+
 ### Computer Settings
 
 Each computer will have a section where its configuration will be stored, if the computer was named "foo" the section will be named `[computer_foo]`

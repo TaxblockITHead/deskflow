@@ -45,12 +45,17 @@ public:
   \c kHTML is a text format encoded in UTF-8 and containing a valid
   HTML fragment (but not necessarily a complete HTML document).
   Newlines are LF.
+
+  \c kFiles holds copied files and folders, including their contents,
+  in the format produced by ClipboardFiles::pack().  Peers that do not
+  know this format skip it when unmarshalling.
   */
   enum class Format
   {
     Text,        //!< Text format, UTF-8, newline is LF
     HTML,        //!< HTML format, HTML fragment, UTF-8, newline is LF
     Bitmap,      //!< Bitmap format, BMP 24/32bpp, BI_RGB
+    Files,       //!< Copied files and folders, see ClipboardFiles
     TotalFormats //!< The number of clipboard formats supported
   };
 

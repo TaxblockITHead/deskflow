@@ -20,6 +20,7 @@
 #include "deskflow/App.h"
 #include "deskflow/ClientApp.h"
 #include "deskflow/Clipboard.h"
+#include "deskflow/ClipboardFiles.h"
 #include "deskflow/DisplayException.h"
 #include "deskflow/KeyMap.h"
 #include "platform/MSWindowsClipboard.h"
@@ -318,10 +319,16 @@ void MSWindowsComputer::leave()
   m_isOnComputer = false;
 }
 
-bool MSWindowsComputer::setClipboard(ClipboardID, const IClipboard *src)
+bool MSWindowsComputer::setClipboard(ClipboardID id, const IClipboard *src)
 {
   MSWindowsClipboard dst(m_window);
   if (src != nullptr) {
+    // windows has one clipboard for both ids and copied files are only sent
+    // with kClipboardClipboard, so the selection must not replace them
+    if (id == kClipboardSelection && !ClipboardFiles::hasFiles(src) && IsClipboardFormatAvailable(CF_HDROP)) {
+      LOG_DEBUG("keeping copied files on clipboard, ignoring selection update");
+      return true;
+    }
     // save clipboard data
     return Clipboard::copy(&dst, src);
   } else {
@@ -418,10 +425,16 @@ void *MSWindowsComputer::getEventTarget() const
   return const_cast<MSWindowsComputer *>(this);
 }
 
-bool MSWindowsComputer::getClipboard(ClipboardID, IClipboard *dst) const
+bool MSWindowsComputer::getClipboard(ClipboardID id, IClipboard *dst) const
 {
   MSWindowsClipboard src(m_window);
-  Clipboard::copy(dst, &src);
+  if (id == kClipboardClipboard) {
+    Clipboard::copy(dst, &src);
+  } else {
+    // same clipboard as kClipboardClipboard, don't read and send files twice
+    ClipboardWithoutFiles withoutFiles(src);
+    Clipboard::copy(dst, &withoutFiles);
+  }
   return true;
 }
 

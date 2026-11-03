@@ -14,6 +14,14 @@ create_test(
 )
 
 create_test(
+  NAME ClipboardFilesTests
+  DEPENDS app
+  LIBS arch base io ${extra_libs}
+  SOURCE ClipboardFilesTests.cpp
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/deskflow"
+)
+
+create_test(
   NAME ClipboardChunksTests
   DEPENDS app
   LIBS arch base io ${extra_libs}
