@@ -205,6 +205,8 @@ public:
   static QString tlsDir();
   static QString tlsTrustedServersDb();
   static QString tlsTrustedClientsDb();
+  //! Fingerprint of the server this client last connected to, used to find it again
+  static QString tlsLastServerDb();
   static QString logLevelText();
   static QSettingsProxy &proxy();
   static NetworkProtocol networkProtocol();

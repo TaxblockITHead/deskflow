@@ -35,6 +35,7 @@ add_library(net STATIC
   SocketException.h
   SocketMultiplexer.cpp
   SocketMultiplexer.h
+  CertFingerprint.h
   SecureUtils.cpp
   SecureUtils.h
   SslLogger.cpp

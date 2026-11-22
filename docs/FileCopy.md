@@ -16,7 +16,7 @@ All computers in the setup must run this build. A computer running the official 
 |---|---|---|
 | Windows PC (e.g. the Dell) | `package-deskflow-windows-2022-x64` | Windows 10 or 11, 64-bit |
 | Intel Mac (e.g. MacBook Pro 2017) | `package-deskflow-macos-x64` | macOS 12 or newer |
-| Apple Silicon Mac (M1–M4, e.g. MacBook Air M4) | `package-deskflow-macos-arm64` | macOS 14 or newer |
+| Apple Silicon Mac (M1–M4, e.g. MacBook Air M4) | `package-deskflow-macos-arm64` (only built when enabled, see [Building new installers](#7-building-new-installers)) | macOS 14 or newer |
 
 ### Where to download
 
@@ -132,6 +132,8 @@ The GitHub workflow builds the installers for every pull request and every push 
 3. Wait for the **Continuous Integration** run (about 40 minutes). Download the installers from the run's **Artifacts** section.
 
 A commit whose message contains `[skip ci]` does not start the workflow.
+
+To save build time, the fork's workflow only builds **`windows-2022-x64`** and **`macos-x64`**; Linux, FreeBSD, Flatpak, Valgrind and CodeQL are switched off. To build for **Apple Silicon Macs** (M1–M4) as well, add the `macos-arm64` target back to the `main-build` matrix in `.github/workflows/continuous-integration.yml`. The full list is in the file's git history.
 
 ### On your own computer
 

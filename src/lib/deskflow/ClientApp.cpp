@@ -17,6 +17,7 @@
 #include "common/Settings.h"
 #include "deskflow/Computer.h"
 #include "deskflow/DisplayException.h"
+#include "deskflow/ServerDiscovery.h"
 #include "deskflow/ipc/CoreIpc.h"
 #include "net/NetworkAddress.h"
 #include "net/SocketException.h"
@@ -43,10 +44,15 @@
 
 #include <memory>
 
-ClientApp::ClientApp(IEventQueue *events, const QString &processName) : App(events, processName)
+ClientApp::ClientApp(IEventQueue *events, const QString &processName)
+    : App(events, processName),
+      // created here, in the main thread, which runs the Qt event loop it needs
+      m_finder{std::make_unique<deskflow::discovery::Finder>()}
 {
   // do nothing
 }
+
+ClientApp::~ClientApp() = default;
 
 void ClientApp::parseArgs()
 {
@@ -213,6 +219,8 @@ void ClientApp::handleClientRefused(const Event &e)
     getEvents()->addEvent(Event(EventTypes::Quit));
   } else {
     LOG_WARN("failed to connect to server: %s", qPrintable(info->m_what));
+    // the server may have a new address, the answer is used on the next retry
+    searchForServer();
     if (!m_suspended) {
       scheduleClientRestart(retryTime());
       m_retryCount++;
@@ -284,6 +292,7 @@ bool ClientApp::startClient()
       LOG_INFO("started client");
     }
 
+    useDiscoveredServer();
     m_client->setServerAddress(getCurrentServerAddress());
     m_client->connect(m_lastServerAddressIndex);
 
@@ -371,6 +380,67 @@ void ClientApp::tryNextServer()
     m_currentServerIndex = (m_currentServerIndex + 1) % m_serverAddresses.size();
     LOG_DEBUG("switching to server %zu of %zu", m_currentServerIndex + 1, m_serverAddresses.size());
   }
+}
+
+void ClientApp::searchForServer()
+{
+  if (!Settings::value(Settings::Security::TlsEnabled).toBool()) {
+    if (!m_discoveryUnavailableLogged) {
+      LOG_INFO("not looking for the server on the network, this needs tls encryption to be enabled");
+      m_discoveryUnavailableLogged = true;
+    }
+    return;
+  }
+
+  const auto fingerprints = deskflow::discovery::expectedServerFingerprints();
+  if (fingerprints.isEmpty()) {
+    if (!m_discoveryUnavailableLogged) {
+      LOG_INFO("not looking for the server on the network, no trusted server yet");
+      m_discoveryUnavailableLogged = true;
+    }
+    return;
+  }
+
+  m_finder->search(fingerprints, static_cast<quint16>(Settings::value(Settings::Core::Port).toInt()));
+}
+
+void ClientApp::useDiscoveredServer()
+{
+  const auto found = m_finder->takeResult();
+  if (!found) {
+    return;
+  }
+
+  const auto host = found->address.toString().toStdString();
+  for (qsizetype index = 0; index < m_serverAddresses.size(); ++index) {
+    const auto &address = m_serverAddresses.at(index);
+    if (address.getHostname() == host && address.getPort() == found->port) {
+      // already trying the address the server answered from
+      if (m_currentServerIndex != static_cast<size_t>(index)) {
+        m_currentServerIndex = static_cast<size_t>(index);
+        m_lastServerAddressIndex = 0;
+      }
+      return;
+    }
+  }
+
+  NetworkAddress address(host, found->port);
+  try {
+    address.resolve();
+  } catch (const SocketAddressException &e) {
+    LOG_WARN("unable to use the address the server answered from, %s: %s", host.c_str(), e.what());
+    return;
+  }
+
+  if (m_discoveredIndex >= 0 && m_discoveredIndex < m_serverAddresses.size()) {
+    m_serverAddresses[m_discoveredIndex] = address;
+  } else {
+    m_serverAddresses.append(address);
+    m_discoveredIndex = m_serverAddresses.size() - 1;
+  }
+  m_currentServerIndex = static_cast<size_t>(m_discoveredIndex);
+  m_lastServerAddressIndex = 0;
+  LOG_INFO("found server \"%s\" at its new address %s, connecting", qPrintable(found->name), host.c_str());
 }
 
 void ClientApp::startNode()

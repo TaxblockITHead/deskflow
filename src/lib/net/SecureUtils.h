@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "CertFingerprint.h"
 #include "Fingerprint.h"
 
 #include <openssl/x509.h>

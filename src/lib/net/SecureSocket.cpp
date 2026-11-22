@@ -25,6 +25,7 @@
 #include <memory>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#include <stdexcept>
 
 //
 // SecureSocket
@@ -495,6 +496,15 @@ int SecureSocket::secureConnect(int socket)
   m_secureReady = true;
   if (verifyCertFingerprint(Settings::tlsTrustedServersDb())) {
     LOG_INFO("connected to secure socket");
+    // remembered so the client can find this server again when its address changes
+    if (auto *cert = SSL_get_peer_certificate(m_ssl->m_ssl); cert != nullptr) {
+      try {
+        deskflow::rememberServerFingerprint(deskflow::sslCertFingerprint(cert, QCryptographicHash::Sha256));
+      } catch (const std::runtime_error &e) {
+        LOG_DEBUG("unable to remember server fingerprint: %s", e.what());
+      }
+      X509_free(cert);
+    }
     if (!showCertificate()) {
       disconnect();
       return -1; // Cert fail, error
