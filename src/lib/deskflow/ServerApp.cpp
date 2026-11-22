@@ -20,7 +20,7 @@
 #include "deskflow/ProtocolTypes.h"
 #include "deskflow/ServerDiscovery.h"
 #include "deskflow/ipc/CoreIpc.h"
-#include "net/SecureUtils.h"
+#include "net/CertFingerprint.h"
 #include "net/SocketException.h"
 #include "net/SocketMultiplexer.h"
 #include "net/TCPSocketFactory.h"
