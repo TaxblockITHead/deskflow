@@ -25,6 +25,19 @@ QString formatSSLFingerprintColumns(const QByteArray &fingerprint);
 
 Fingerprint sslCertFingerprint(const X509 *cert, QCryptographicHash::Algorithm type);
 
+/**
+ * @brief SHA256 fingerprint of the certificate in a PEM file
+ * @param path PEM file, may also contain the private key
+ * @return the fingerprint, invalid if the file has no readable certificate
+ */
+Fingerprint certFileFingerprint(const QString &path);
+
+/**
+ * @brief Remember the server this client connected to, so it can be found again
+ * when its address changes. Writes Settings::tlsLastServerDb() when it changed.
+ */
+void rememberServerFingerprint(const Fingerprint &fingerprint);
+
 void generatePemSelfSignedCert(const QString &path, int keyLength = 2048);
 
 QString generateFingerprintArt(const QByteArray &rawDigest);

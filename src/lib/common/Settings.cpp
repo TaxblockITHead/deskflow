@@ -468,6 +468,11 @@ QString Settings::tlsTrustedClientsDb()
   return QFileInfo(QStringLiteral("%1/trusted-clients").arg(instance()->tlsDir())).absoluteFilePath();
 }
 
+QString Settings::tlsLastServerDb()
+{
+  return QFileInfo(QStringLiteral("%1/last-server").arg(instance()->tlsDir())).absoluteFilePath();
+}
+
 QString Settings::logLevelText()
 {
   return Settings::value(Log::Level).toString();

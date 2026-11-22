@@ -16,6 +16,10 @@
 
 #include <memory>
 
+namespace deskflow::discovery {
+class Responder;
+} // namespace deskflow::discovery
+
 enum class ServerState
 {
   Uninitialized,
@@ -46,7 +50,7 @@ class ServerApp : public App
 
 public:
   explicit ServerApp(IEventQueue *events, const QString &processName = QString());
-  ~ServerApp() override = default;
+  ~ServerApp() override;
 
   //
   // IApp overrides
@@ -105,6 +109,8 @@ private:
   void handleComputerSwitched() const;
   std::unique_ptr<ISocketFactory> getSocketFactory() const;
   NetworkAddress getAddress(const NetworkAddress &address) const;
+  //! Answer clients looking for this server after its address changed
+  void startDiscoveryResponder();
 
   bool m_suspended = false;
   Server *m_server = nullptr;
@@ -116,4 +122,5 @@ private:
   NetworkAddress *m_deskflowAddress = nullptr;
   std::string m_name;
   std::shared_ptr<deskflow::server::Config> m_config;
+  std::unique_ptr<deskflow::discovery::Responder> m_responder;
 };

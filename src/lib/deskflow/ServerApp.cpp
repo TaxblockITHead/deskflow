@@ -18,7 +18,9 @@
 #include "deskflow/Computer.h"
 #include "deskflow/DisplayException.h"
 #include "deskflow/ProtocolTypes.h"
+#include "deskflow/ServerDiscovery.h"
 #include "deskflow/ipc/CoreIpc.h"
+#include "net/SecureUtils.h"
 #include "net/SocketException.h"
 #include "net/SocketMultiplexer.h"
 #include "net/TCPSocketFactory.h"
@@ -55,11 +57,15 @@ using namespace deskflow::server;
 // ServerApp
 //
 
-ServerApp::ServerApp(IEventQueue *events, const QString &processName) : App(events, processName)
+ServerApp::ServerApp(IEventQueue *events, const QString &processName)
+    : App(events, processName),
+      // created here, in the main thread, which runs the Qt event loop it needs
+      m_responder{std::make_unique<deskflow::discovery::Responder>()}
 {
   m_name = Settings::value(Settings::Core::ComputerName).toString().toStdString();
-  // do nothing
 }
+
+ServerApp::~ServerApp() = default;
 
 void ServerApp::parseArgs()
 {
@@ -198,6 +204,7 @@ void ServerApp::stopServer()
 {
   using enum ServerState;
   if (m_serverState == Started) {
+    m_responder->stop();
     closeServer(m_server);
     closeClientListener(m_listener);
     m_server = nullptr;
@@ -376,6 +383,7 @@ bool ServerApp::startServer()
     LOG_DEBUG("started server, waiting for clients");
     ipcSendConnectionState(deskflow::core::ConnectionState::Listening);
     m_serverState = Started;
+    startDiscoveryResponder();
     return true;
   } catch (SocketAddressInUseException &e) {
     LOG_CRIT("cannot listen for clients: %s", e.what());
@@ -387,6 +395,25 @@ bool ServerApp::startServer()
   }
 
   return false;
+}
+
+void ServerApp::startDiscoveryResponder()
+{
+  if (!Settings::value(Settings::Security::TlsEnabled).toBool()) {
+    LOG_INFO("clients can't find this server when its address changes, this needs tls encryption to be enabled");
+    return;
+  }
+
+  const auto fingerprint = deskflow::certFileFingerprint(Settings::value(Settings::Security::Certificate).toString());
+  if (!fingerprint.isValid()) {
+    LOG_WARN("clients can't find this server when its address changes, unable to read its tls certificate");
+    return;
+  }
+
+  m_responder->start(
+      static_cast<quint16>(Settings::value(Settings::Core::Port).toInt()), QString::fromStdString(m_name),
+      fingerprint.toDbLine()
+  );
 }
 
 deskflow::Computer *ServerApp::createComputer()

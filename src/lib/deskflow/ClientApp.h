@@ -13,10 +13,16 @@
 
 #include <QList>
 
+#include <memory>
+
 namespace deskflow {
 class Computer;
 class ClientArgs;
 } // namespace deskflow
+
+namespace deskflow::discovery {
+class Finder;
+} // namespace deskflow::discovery
 
 class Event;
 class Client;
@@ -27,7 +33,7 @@ class ClientApp : public App
 {
 public:
   explicit ClientApp(IEventQueue *events, const QString &processName = QString());
-  ~ClientApp() override = default;
+  ~ClientApp() override;
 
   //
   // IApp overrides
@@ -88,6 +94,10 @@ private:
   ISocketFactory *getSocketFactory() const;
   NetworkAddress &getCurrentServerAddress();
   void tryNextServer();
+  //! Ask the networks where the server is, e.g. after its address changed
+  void searchForServer();
+  //! Connect to the server at the address found by searchForServer()
+  void useDiscoveredServer();
 
   bool m_suspended = false;
   Client *m_client = nullptr;
@@ -96,4 +106,7 @@ private:
   size_t m_currentServerIndex = 0;
   size_t m_lastServerAddressIndex = 0;
   uint m_retryCount = 0;
+  std::unique_ptr<deskflow::discovery::Finder> m_finder;
+  qsizetype m_discoveredIndex = -1;
+  bool m_discoveryUnavailableLogged = false;
 };

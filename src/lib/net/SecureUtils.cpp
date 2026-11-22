@@ -8,6 +8,8 @@
 #include "SecureUtils.h"
 
 #include "base/FinalAction.h"
+#include "common/Settings.h"
+#include "net/FingerprintDatabase.h"
 
 #include <openssl/evp.h>
 #include <openssl/pem.h>
@@ -61,6 +63,53 @@ Fingerprint sslCertFingerprint(const X509 *cert, QCryptographicHash::Algorithm t
 
   QByteArray digestArray(reinterpret_cast<const char *>(digest), digestLength);
   return {type, digestArray};
+}
+
+Fingerprint certFileFingerprint(const QString &path)
+{
+  QFile file(path);
+  if (!file.open(QIODevice::ReadOnly)) {
+    return {};
+  }
+  const QByteArray pem = file.readAll();
+
+  BIO *bio = BIO_new_mem_buf(pem.constData(), static_cast<int>(pem.size()));
+  if (bio == nullptr) {
+    return {};
+  }
+  // skips other blocks, such as the private key, until it finds the certificate
+  X509 *cert = PEM_read_bio_X509(bio, nullptr, nullptr, nullptr);
+  BIO_free(bio);
+  if (cert == nullptr) {
+    return {};
+  }
+
+  Fingerprint fingerprint;
+  try {
+    fingerprint = sslCertFingerprint(cert, QCryptographicHash::Sha256);
+  } catch (const std::runtime_error &) {
+    fingerprint = {};
+  }
+  X509_free(cert);
+  return fingerprint;
+}
+
+void rememberServerFingerprint(const Fingerprint &fingerprint)
+{
+  if (!fingerprint.isValid()) {
+    return;
+  }
+
+  const auto path = Settings::tlsLastServerDb();
+  FingerprintDatabase current;
+  current.read(path);
+  if (current.fingerprints().size() == 1 && current.fingerprints().first() == fingerprint) {
+    return;
+  }
+
+  FingerprintDatabase db;
+  db.addTrusted(fingerprint);
+  db.write(path);
 }
 
 void generatePemSelfSignedCert(const QString &path, int keyLength)

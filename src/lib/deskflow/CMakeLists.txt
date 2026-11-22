@@ -77,6 +77,8 @@ add_library(${lib_name} STATIC ${PLATFORM_CODE}
   ProtocolUtil.h
   ServerApp.cpp
   ServerApp.h
+  ServerDiscovery.cpp
+  ServerDiscovery.h
   StreamChunker.cpp
   StreamChunker.h
   KeyboardLayoutManager.cpp
